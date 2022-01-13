@@ -320,10 +320,9 @@ def main():
 
     files: List[Dict[str, str]] = collect_files()
 
-    # TODO enable
-    # if len([f for f in files if f['type'] == TYPE_NODEPKG]) > 0:
-    #     logger.debug("Found at least 1 node package. Preparing npm..")
-    #     setup_node_tools()
+    if len([f for f in files if f['type'] == TYPE_NODEPKG]) > 0:
+        logger.debug("Found at least 1 node package. Preparing npm..")
+        setup_node_tools()
 
     data = process_package_files(files)
     process_node_licenses(files, data)
