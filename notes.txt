@@ -1,0 +1,21 @@
+pylicense lib does not work
+-> calls pypi http -> request limits occur pretty fast (wait 1s, wait 60s ...)
+
+to get importlib.metadata, the package must be installed first through pip
+
+must use pip to install all packages (takes a long time..) -> any other ways? -> not so far
+
+using pip to install -> then parse through req files -> collect packages + license meta -> works OK so far
+
+
+Nodejs:
+
+npm: packages also need to be installed first
+
+npm cannot install from /path/to/package.json (?) -> somehow collect all packages and install them
+
+We also need to summarize the results for easier reading
+
+The format should be e.g.
+{lic1: 2387, lic2: 1237, lic3: 237, ...}
+ordered by count, DESC

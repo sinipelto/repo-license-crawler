@@ -1,0 +1,41 @@
+{
+  "logger": {
+    "name": "license-collector",
+    "level": "DEBUG"
+  },
+  "locations": {
+    "example-dir": "C:\\Users\\USER\\source\\repos\\example-repo",
+    "another-example-dir": "C:\\path\\to\\repo_dir"
+  },
+  "bins": {
+    "npm": "npm.cmd",
+    "npx": "npx.cmd"
+  },
+  "output": "./out/output.json",
+  "node_output": "./out/node-output.json",
+  "node_summary": "./out/node-summary.txt",
+  "src_types": {
+    "py-req": {
+      "field_type": "int",
+      "field": 0
+    },
+    "node-pkg": {
+      "field_type": "dict",
+      "field": "license"
+    }
+  },
+  "files": [
+    {
+      "name": "requirements.txt",
+      "type": "py-req"
+    },
+    {
+      "name": "package.json",
+      "type": "node-pkg"
+    },
+    {
+      "name": "package-info.json",
+      "type": "node-pkg"
+    }
+  ]
+}
