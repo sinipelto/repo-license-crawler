@@ -105,7 +105,7 @@ def setup_node_tools():
     # Ensure npm exists, installed
     # Ensure npx installed
     # Ensure license-crawler installed
-    logger.info("Ensuring necessary npm tools are installed..")
+    logger.info("Ensuring necessary npm tools are installed and up to date..")
 
     npm = config['bins']['npm']
 
@@ -115,7 +115,7 @@ def setup_node_tools():
     ]:
         exec_cmd(cmd)
 
-    logger.info("Installation done.")
+    logger.info("Tools installation done.")
 
 
 def process_package_files(files: List[Dict[str, str]]) -> List[dict]:
@@ -287,6 +287,9 @@ def process_node_licenses(files: List[Dict[str, str]], data: List[dict]) -> None
     logger.debug(f"All Modules installed: {res}")
     logger.info("All node modules installed.")
 
+    # After installing all packages, ensure tools installed & up to date
+    setup_node_tools()
+
     # Run the crawler on node_modules
     # After, crawl through the installed modules for licenses
     logger.info("Crawling through licenses..")
@@ -320,12 +323,13 @@ def main():
 
     files: List[Dict[str, str]] = collect_files()
 
-    if len([f for f in files if f['type'] == TYPE_NODEPKG]) > 0:
-        logger.debug("Found at least 1 node package. Preparing npm..")
-        setup_node_tools()
-
+    # Process Python packages and NPM package meta
     data = process_package_files(files)
-    process_node_licenses(files, data)
+
+    # If npm packages exist, run the package collection on package files
+    if len([f for f in files if f['type'] == TYPE_NODEPKG]) > 0:
+        logger.debug("Found at least 1 node package. Processing also node packages..")
+        process_node_licenses(files, data)
 
     dump_results(data, config['output'])
 
