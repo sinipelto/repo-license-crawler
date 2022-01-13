@@ -34,13 +34,36 @@ npm install -g npm@latest
 npm -v
 ```
 
-Create an empty Python Virtual Environment (venv) for the tool:
+Create an empty Python Virtual Environment (VENV) for the tool:
 
 ```bash
 python -m venv C:\path\to\venv
 ```
 
-Install the required dependencies for the tool (if applicable):
+Activate the newly created VENV:
+
+```bash
+.\venv\Scripts\activate
+```
+
+Ensure pip is up-to-date (inside VENV):
+
+```bash
+pip -V
+pip install -U pip
+pip -V
+```
+
+Or through python if pip is not globally available (inside VENV):
+
+```bash
+python -m pip -V
+python -m pip install -U pip
+python -m pip -V
+```
+
+
+Install the required dependencies for the tool into the VENV (if applicable):
 
 ```bash
 pip install -r requirements.txt
