@@ -14,11 +14,11 @@
     "npx": "npx.cmd"
   },
 
-  "output": "./out/output.json",
-  "output_summary": "./out/output-summary.json",
-  "node_output": "./out/npm-output.json",
-  "node_deps": "./out/npm-packages.json",
-  "node_summary": "./out/npm-summary.txt",
+  "output": "./result/output.json",
+  "output_summary": "./result/output-summary.json",
+  "node_output": "./result/npm-output.json",
+  "node_deps": "./result/npm-packages.json",
+  "node_summary": "./result/npm-summary.txt",
 
   "src_types": {
     "py-req": {},

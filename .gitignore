@@ -523,10 +523,12 @@ cython_debug/
 # End of https://www.toptal.com/developers/gitignore/api/pycharm,pycharm+iml,pycharm+all,python,node
 
 # Ignore collector outputs
-out/
+result/*
+# But keep the out dir itself
+!result/.keep
 
 # Ignore local config.json
 config/config.json
 
-# Ignore package json files (only created by the python script and not necessary otherwise)
+# Ignore package(-lock) json files (only created by the python script and are environment specific)
 package*.json
