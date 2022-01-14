@@ -5,7 +5,7 @@ import logging
 import os
 import subprocess
 from pathlib import Path
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Tuple
 
 import pip
 
@@ -118,7 +118,7 @@ def setup_node_tools():
     logger.info("Tools installation done.")
 
 
-def process_package_files(files: List[Dict[str, str]]) -> List[dict]:
+def process_package_files(files: List[Dict[str, str]]) -> Tuple[List[Dict[str, any]], Dict[str, int]]:
     results: List[Dict[str, any]] = []
 
     for file in files:
@@ -159,7 +159,7 @@ def process_package_files(files: List[Dict[str, str]]) -> List[dict]:
                     result['packages'].append({'name': pkg, 'meta': True, 'version': ver, 'license': lic})
                 except Exception as ex:
                     logger.exception(f"ERROR: Failed to read package meta for: {pkg}", exc_info=ex)
-                    result['packages'].append({'name': pkg, 'meta': False})
+                    result['packages'].append({'name': pkg, 'meta': False, 'version': None, 'license': None})
             results.append(result)
 
         elif ftype == TYPE_NODEPKG:
@@ -191,28 +191,28 @@ def process_package_files(files: List[Dict[str, str]]) -> List[dict]:
 
     # Generate a summary of all licenses in results
     # And add as a part of the output
-    summary = {'path': 'PACKAGE-SUMMARY', 'type': None, 'packages': None}
-    licenses = {'N/A': 0}
+    summary: Dict[str, int] = {'NONE': 0}
 
     for res in results:
         for pkg in res['packages']:
             if 'license' not in pkg:
-                licenses['N/A'] += 1
+                summary['NONE'] += 1
                 continue
             lic = pkg['license']
-            if lic not in licenses:
-                licenses[lic] = 1
+            if lic is None or lic == "":
+                summary['NONE'] += 1
+            if lic not in summary:
+                summary[lic] = 1
             else:
-                licenses[lic] += 1
+                summary[lic] += 1
 
-    # Order licenses by value (count) Descending
-    summary['licenses'] = {k: v for k, v in sorted(licenses.items(), key=lambda it: it[1], reverse=True)}
-    results.append(summary)
+    # Order licenses Descending by count (license with most uses first)
+    summary = {k: v for k, v in sorted(summary.items(), key=lambda it: it[1], reverse=True)}
 
-    return results
+    return results, summary
 
 
-def process_node_modules(files: List[Dict[str, str]]) -> List[str]:
+def process_npm_modules(files: List[Dict[str, str]]) -> List[Dict[str, any]]:
     results = []
     for file in files:
         path: str = file['path']
@@ -228,35 +228,38 @@ def process_node_modules(files: List[Dict[str, str]]) -> List[str]:
         # name: str = content['name'] if 'name' in content else None
 
         # Collect all possible dependencies from the package json file
-        deps: Set[str] = set(content['dependencies'].keys()) if 'dependencies' in content else set()
-
         # Collect also additional dependencies
-        deps.update(set(content['devDependencies'].keys()) if 'devDependencies' in content else set())
-        deps.update(set(content['peerDependencies'].keys()) if 'peerDependencies' in content else set())
-        deps.update(set(content['bundledDependencies'].keys()) if 'bundledDependencies' in content else set())
-        deps.update(set(content['optionalDependencies'].keys()) if 'optionalDependencies' in content else set())
+        deps: Set[str] = set()
+        for key in [
+            'dependencies',
+            'devDependencies',
+            'peerDependencies'
+            'bundledDependencies',
+            'optionalDependencies',
+        ]:
+            deps.update(set(content[key].keys()) if key in content else set())
 
         # Collect unique package names into list
         # NOTE: done in previous stage
         # if name is not None and name != "" and name not in results:
         #     results.append(content['name'])
 
+        # results.update(deps)
+
         if len(deps) > 0:
-            for dep in deps:
-                if dep is not None and dep != "" and dep not in results:
-                    results.append(dep)
+            results.append({
+                'path': path,
+                'type': ftype,
+                'packages': [dep for dep in deps if dep is not None and dep != ""]
+            })
         else:
-            logger.debug("No dependencies found in package json file.")
+            logger.warning(f"No dependencies found in package json file: {path}")
 
     return results
 
 
-def process_node_licenses(files: List[Dict[str, str]], data: List[dict]) -> None:
-    modules: List[str] = process_node_modules(files)
-    # TODO run crawler on node_modules dir
-    #   -> parse licenses
-    #   -> insert into data
-    #   -> return
+def scan_npm_licenses(files: List[Dict[str, str]], results: List[dict]) -> None:
+    modules: List[Dict[str, any]] = process_npm_modules(files)
 
     # Required NPM binaries
     npm: str = config['bins']['npm']
@@ -268,10 +271,14 @@ def process_node_licenses(files: List[Dict[str, str]], data: List[dict]) -> None
     # Summary from --summary is plain text so piped into .txt file
     sum_path: str = config['node_summary']
 
+    # Output for packages summary (which packages belong to which file, etc
+    pkg_path: str = config['node_deps']
+    dump_json(modules, pkg_path)
+
     # Install all package.json packages
     # First, install all the used node modules into current location
     logger.info("Installing node modules (might take a very long time)..")
-    # TODO NOTE: Running installs one at a time is extremely slow! Using bundled installation instead
+    # TODO NOTE: Running installs one package at a time is extremely slow! Using bundled installation instead
     # for mod in modules:
     #     try:
     #         logger.debug(f"Installing module: {mod}")
@@ -281,8 +288,13 @@ def process_node_licenses(files: List[Dict[str, str]], data: List[dict]) -> None
     #         logger.debug(f"Module: {mod} installed: {res}")
     #     except Exception as ex:
     #         logger.exception(f"ERROR: Failed to install package: {mod}", exc_info=ex)
+
+    packages: Set[str] = set()
+    for mod in modules:
+        packages.update(set(mod['packages']))
+
     res = exec_cmd(
-        [npm, "install", "--force", "--allow-missing", "--legacy-peer-deps"] + modules
+        [npm, "install", "--force", "--allow-missing", "--legacy-peer-deps"] + list(packages)
     )
     logger.debug(f"All Modules installed: {res}")
     logger.info("All node modules installed.")
@@ -311,10 +323,10 @@ def process_license_info(data: List[Dict[str, str]]):
     pass
 
 
-def dump_results(result: List[Dict[str, str]], path: str):
+def dump_json(data: any, path: str):
     # Open output file to be written
     with open(path, "w", encoding="utf-8") as of:
-        json.dump(result, of, indent=2)
+        json.dump(data, of, indent=2)
 
 
 def main():
@@ -324,14 +336,16 @@ def main():
     files: List[Dict[str, str]] = collect_files()
 
     # Process Python packages and NPM package meta
-    data = process_package_files(files)
+    data, summary = process_package_files(files)
 
     # If npm packages exist, run the package collection on package files
     if len([f for f in files if f['type'] == TYPE_NODEPKG]) > 0:
         logger.debug("Found at least 1 node package. Processing also node packages..")
-        process_node_licenses(files, data)
+        scan_npm_licenses(files, data)
 
-    dump_results(data, config['output'])
+    dump_json(data, config['output'])
+    # Dump the summary in a separate file
+    dump_json(summary, config['output_summary'])
 
 
 if __name__ == '__main__':
