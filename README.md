@@ -1,6 +1,12 @@
-# license-collector
+# (Universal) Repository License Crawler
 
 License collector tool for Python PIP and NodeJS NPM package licenses.
+
+The aim is to get a complete collection of what kind of licenses are being used in the given repository (path), in any form, as parts of the application or individual libraries.
+
+This helps identify the legitimacy of the current software project, especially in larger repos with dozens of libraries or dependencies.
+
+This tool collects the licenses into human and machine-readable JSON files. From there it should be relatively easy to detect any conflicting licenses and take actions based on that information.
 
 # Getting Started
 
